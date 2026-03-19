@@ -1,0 +1,52 @@
+{
+  "name": "rdflib-cdt",
+  "version": "0.1.0",
+  "description": "Standalone extension for rdflib.js — Custom Datatypes (CDT) with UCUM unit-aware equality, comparison, conversion, and arithmetic.",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "src",
+    "lib",
+    "esm"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:all": "npm run build && npm run build:esm",
+    "test": "mocha --require ./test/register.js test/**/*.test.ts",
+    "test:verify": "node tests/verify.js",
+    "test:test": "node tests/test.js",
+    "lint": "tsc --noEmit",
+    "clean": "rimraf lib esm",
+    "prepublishOnly": "npm run clean && npm run build:all && npm run test"
+  },
+  "peerDependencies": {
+    "rdflib": ">=2.0.0"
+  },
+  "dependencies": {
+    "@lhncbc/ucum-lhc": "^5.0.0"
+  },
+  "devDependencies": {
+    "rdflib": "^2.3.5",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-typescript": "^7.28.0",
+    "@babel/register": "^7.28.0",
+    "@types/chai": "^5.0.0",
+    "@types/mocha": "^10.0.0",
+    "chai": "^4.5.0",
+    "mocha": "^10.8.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.0"
+  },
+  "keywords": [
+    "rdf", "rdflib", "ucum", "units", "custom-datatypes",
+    "linked-data", "quantity", "measurement", "semantic-web"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USER/rdflib-cdt.git"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+lib/
+esm/
+dist/
+*.js.map
+*.d.ts.map
+.DS_Store
+tests/register.js
+tests/test.js
+tests/verify.js
+examples/basic-usage.js
