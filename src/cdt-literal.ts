@@ -21,8 +21,6 @@ import {
   isCdtQuantityDatatype,
   getCdtKind,
   CdtDatatypeKey,
-  CDT_KIND_ANCHOR,
-  UCUM_BLIND_SPOT_KINDS,
 } from './cdt-namespace'
 
 export interface ParsedCdtLiteral {
@@ -88,34 +86,11 @@ export function parseCdtUnit(lexicalForm: string): ParsedCdtUnit | null {
 }
 
 /**
- * Validate that a CDT literal's unit matches the expected dimension for its datatype.
- *
- * Strategy:
- *   cdt:ucum          → accept any valid unit (no dimension constraint)
- *   UCUM blind spots  → fall back to convertValue() commensurability check
- *   All other kinds   → compare unitToExp maps via areCommensurable()
- *
- * The blind spot fallback uses convertValue() because:
- *   - amountOfSubstance / catalyticActivity: mol is dimensionless in UCUM spec
- *   - radiationDoseAbsorbed / radiationDoseEffective: Gy and Sv share the same
- *     physical dimension — ucum-lhc correctly rejects Gy↔Sv conversion even
- *     though their unitToExp maps are identical
+ * With only cdt:ucum remaining, any valid UCUM unit is accepted.
+ * Always returns true.
  */
 export function validateCdtDimension(parsed: ParsedCdtLiteral): boolean {
-  const kind = getCdtKind(parsed.datatypeIri)
-  if (!kind) return false
-  if (kind === 'ucum') return true
-
-  const anchor = CDT_KIND_ANCHOR[kind as CdtDatatypeKey]
-  if (!anchor) return true // unknown kind — accept rather than reject
-
-  if (UCUM_BLIND_SPOT_KINDS.has(kind as CdtDatatypeKey)) {
-    // Blind spot: unitToExp comparison is unreliable — use conversion test
-    return convertValue(1, parsed.unitString, anchor) !== null
-  }
-
-  // Standard case: compare dimension maps via areCommensurable()
-  return areCommensurable(parsed.unitString, anchor)
+  return true
 }
 
 /**

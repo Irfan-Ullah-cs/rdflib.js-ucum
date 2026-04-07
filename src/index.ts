@@ -2,19 +2,16 @@
  * rdflib-cdt — public API
  */
 
-// ─── Namespace & Constants ───────────────────────────────────────────────────
+// --- Namespace & Constants ---
 export {
   CDT_NAMESPACE,
   CDT_IRIS,
-  CDT_KIND_ANCHOR,
-  UCUM_BLIND_SPOT_KINDS,
   isCdtDatatype,
   isCdtQuantityDatatype,
   getCdtKind,
 } from './cdt-namespace'
-export type { CdtDatatypeKey } from './cdt-namespace'
 
-// ─── UCUM Service ────────────────────────────────────────────────────────────
+// --- UCUM Service ------------
 export {
   assertUcumInternalsAvailable,
   getUnitMeta,
@@ -32,7 +29,7 @@ export type {
   CanonicalValue,
 } from './ucum-service'
 
-// ─── CDT Literal ─────────────────────────────────────────────────────────────
+// --- CDT Literal -------------
 export {
   parseCdtLiteral,
   parseCdtUnit,
@@ -47,7 +44,7 @@ export type {
   ParsedCdtUnit,
 } from './cdt-literal'
 
-// ─── CDT Comparison ──────────────────────────────────────────────────────────
+// --- CDT Comparison ----------
 export {
   tryParseCdt,
   cdtEquals,
@@ -59,7 +56,7 @@ export {
   cdtValueIn,
 } from './cdt-comparison'
 
-// ─── CDT Arithmetic ──────────────────────────────────────────────────────────
+// --- CDT Arithmetic ----------
 export {
   cdtAdd,
   cdtSubtract,
@@ -67,7 +64,7 @@ export {
   cdtDivide,
 } from './cdt-arithmetic'
 
-// ─── CDT Factory & Store ─────────────────────────────────────────────────────
+// --- CDT Factory & Store -----
 export {
   createCdtFactory,
 } from './cdt-factory'
