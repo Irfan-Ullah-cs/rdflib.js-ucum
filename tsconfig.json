@@ -1,20 +1,38 @@
 {
   "compilerOptions": {
-    "target": "ES2019",
-    "module": "commonjs",
-    "lib": ["ES2019"],
+    // -- Output  ---
+    "target": "ES2019",           
+    "module": "commonjs",         
+    "ignoreDeprecations": "6.0",
     "outDir": "./lib",
     "rootDir": "./src",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+
+    // -- Declarations   -----
+    "declaration": true,          
+    "declarationMap": true,       
+    "sourceMap": true,            
+
+    // -- Module resolution   -
+    "moduleResolution": "node10", 
+    "esModuleInterop": true,      
+    "resolveJsonModule": true,    
+
+    // -- Type checking   -----
+    "strict": true,               
+    "noUncheckedIndexedAccess": true,   
+    "noImplicitReturns": true,    
+    "noFallthroughCasesInSwitch": true, 
+    "exactOptionalPropertyTypes": true, 
+
+    // -- Library  --
+    "lib": ["ES2019"],
+    "types": ["node", "mocha"],
+
+    // -- Safety  ---
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true          
+    
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "lib", "esm", "test", "examples"]
+  "exclude": ["node_modules", "lib", "esm", "tests", "examples"]
 }

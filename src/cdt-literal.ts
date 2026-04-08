@@ -50,8 +50,10 @@ export function parseCdtLiteral(
   const match = lexicalForm.match(CDT_QUANTITY_REGEX)
   if (!match) return null
 
-  const numericValue = parseFloat(match[1])
-  const unitString   = match[2].trim()
+  const [, rawValue, rawUnit] = match
+  if (!rawValue || !rawUnit) return null
+  const numericValue = parseFloat(rawValue)
+  const unitString   = rawUnit.trim()
   if (isNaN(numericValue)) return null
 
   try {

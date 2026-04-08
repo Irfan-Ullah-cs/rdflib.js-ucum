@@ -14,10 +14,10 @@
     "build": "tsc -p tsconfig.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:all": "npm run build && npm run build:esm",
-    "test": "mocha --require ./test/register.js test/**/*.test.ts",
+    "test": "mocha --require ./tests/register.js tests/**/*.ts",
     "test:verify": "node tests/verify.js",
     "test:test": "node tests/test.js",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "clean": "rimraf lib esm",
     "prepublishOnly": "npm run clean && npm run build:all && npm run test"
   },
@@ -28,21 +28,30 @@
     "@lhncbc/ucum-lhc": "^5.0.0"
   },
   "devDependencies": {
-    "rdflib": "^2.3.5",
     "@babel/core": "^7.28.0",
     "@babel/preset-env": "^7.28.0",
     "@babel/preset-typescript": "^7.28.0",
     "@babel/register": "^7.28.0",
     "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
     "chai": "^4.5.0",
     "mocha": "^10.8.0",
+    "rdflib": "^2.3.5",
     "rimraf": "^5.0.0",
+    "source-map-support": "^0.5.21",
     "typescript": "^5.5.0"
   },
   "keywords": [
-    "rdf", "rdflib", "ucum", "units", "custom-datatypes",
-    "linked-data", "quantity", "measurement", "semantic-web"
+    "rdf",
+    "rdflib",
+    "ucum",
+    "units",
+    "custom-datatypes",
+    "linked-data",
+    "quantity",
+    "measurement",
+    "semantic-web"
   ],
   "license": "MIT",
   "repository": {

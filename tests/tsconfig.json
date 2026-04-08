@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "6.0",
+    "types": ["mocha", "node"],
+    "noEmit": true
+  },
+  "include": ["./**/*", "../src/**/*"]
+}
