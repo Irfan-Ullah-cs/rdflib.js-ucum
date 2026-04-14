@@ -133,9 +133,11 @@ describe('TestValidLexicalForms', () => {
     expect(p!.numericValue).to.equal(1)
   })
 
-  //  parseCdtLiteral requires "<number> <unit>" — returns null for bare "1.2" which it should not. it should treat it as a dimensionless quantity.
-  it.skip('parses bare number as dimensionless quantity', () => {
-    expect(parseCdtLiteral('1.2', UCUM)).to.be.not.null
+  it('parses bare number as dimensionless quantity', () => {
+    const p = parseCdtLiteral('1.2', UCUM)
+    expect(p).to.not.be.null
+    expect(p!.numericValue).to.equal(1.2)
+    expect(p!.unitString).to.equal('1')
   })
 
   it('parses dimensionless ratio: 1.2 m/m', () => {
@@ -150,14 +152,10 @@ describe('TestValidLexicalForms', () => {
 
 describe('TestInvalidLexicalForms', () => {
 
-  // reason="Spaces is not allowed at the beginning and end")
-  it.skip('xfail: leading/trailing whitespace not stripped — returns null', () => {
+  it('xfail: leading/trailing whitespace not allowed', () => {
     const p = parseCdtLiteral('  1.5 km  ', UCUM)
-    expect(p).to.not.be.null  
-    expect(p!.numericValue).to.equal(1.5)
-    expect(p!.unitString).to.equal('km')
+    expect(p).to.be.null  
   })
-
   it('returns null for a unit-only string (no numeric part)', () => {
     expect(parseCdtLiteral('km', UCUM)).to.be.null
   })

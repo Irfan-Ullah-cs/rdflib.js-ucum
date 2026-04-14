@@ -40,6 +40,7 @@ export interface ParsedCdtUnit {
 }
 
 const CDT_QUANTITY_REGEX = /^([+\-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+\-]?\d+)?)\s+(.+)$/
+const CDT_BARE_NUMBER_REGEX = /^([+\-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+\-]?\d+)?)$/
 
 export function parseCdtLiteral(
   lexicalForm: string,
@@ -47,17 +48,26 @@ export function parseCdtLiteral(
 ): ParsedCdtLiteral | null {
   if (!isCdtQuantityDatatype(datatypeIri)) return null
 
-  const match = lexicalForm.match(CDT_QUANTITY_REGEX)
-  if (!match) return null
+  let rawValue: string
+  let unitString: string
 
-  const [, rawValue, rawUnit] = match
-  if (!rawValue || !rawUnit) return null
+  const match = lexicalForm.match(CDT_QUANTITY_REGEX)
+  if (match) {
+    rawValue   = match[1]!
+    unitString = match[2]!.trim()
+  } else {
+    // Fallback: bare number → dimensionless unit "1"
+    const bareMatch = lexicalForm.trim().match(CDT_BARE_NUMBER_REGEX)
+    if (!bareMatch) return null
+    rawValue   = bareMatch[1]!
+    unitString = '1'
+  }
+
   const numericValue = parseFloat(rawValue)
-  const unitString   = rawUnit.trim()
   if (isNaN(numericValue)) return null
 
   try {
-    const kind     = getCdtKind(datatypeIri) || undefined
+    const kind      = getCdtKind(datatypeIri) || undefined
     const canonical = computeCanonicalValue(numericValue, unitString, kind)
     return {
       numericValue,
@@ -72,7 +82,6 @@ export function parseCdtLiteral(
     return null
   }
 }
-
 export function parseCdtUnit(lexicalForm: string): ParsedCdtUnit | null {
   try {
     const validation = validateUnit(lexicalForm.trim())
