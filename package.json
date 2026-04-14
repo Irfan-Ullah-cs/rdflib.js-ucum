@@ -25,7 +25,8 @@
     "rdflib": ">=2.0.0"
   },
   "dependencies": {
-    "@lhncbc/ucum-lhc": "^5.0.0"
+    "@lhncbc/ucum-lhc": "^5.0.0",
+    "decimal.js": "^10.6.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

@@ -7,4 +7,5 @@ dist/
 .DS_Store
 tests/test.js
 tests/verify.js
+tests/testForDecimal.cjs
 examples/basic-usage.js

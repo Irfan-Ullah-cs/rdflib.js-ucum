@@ -17,6 +17,7 @@ export type CdtDatatypeKey = keyof typeof CDT_IRIS
 
 
 export function isCdtDatatype(datatypeIri: string): boolean {
+  if (!datatypeIri) return false
   return datatypeIri.startsWith(CDT_NAMESPACE)
 }
 
