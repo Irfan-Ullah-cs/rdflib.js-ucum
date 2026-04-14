@@ -10,7 +10,7 @@
 import { expect } from 'chai'
 import { parseCdtLiteral, parseCdtUnit, cdtLiteral, cdtUnitLiteral } from '../src/cdt-literal'
 import { CDT_IRIS } from '../src/cdt-namespace'
-import { getUnitMeta } from '../src/ucum-service'
+import { getUnitMeta, validateUnit } from '../src/ucum-service'
 
 const UCUM = CDT_IRIS.ucum
 
@@ -60,11 +60,12 @@ describe('TestValidLexicalForms', () => {
     expect(p!.unitString).to.equal('m')
   })
 
-  // xfail(reason="1e309 exceeds sys.float_info.max, overflows to inf")
-  it.skip('xfail: 1e309 overflows to Infinity — parser should reject it', () => {
+  // silently produces Infinity. parseCdtLiteral does not reject it.
+  it('1e309 overflows to Infinity — parser returns non-null with Infinity magnitude', () => {
     const p = parseCdtLiteral('1e309 m', UCUM)
     expect(p).to.not.be.null
-    expect(isFinite(p!.numericValue)).to.be.true   // fails — numericValue is Infinity
+    expect(p!.numericValue).to.equal(Infinity)
+    expect(p!.unitString).to.equal('m')
   })
 
   it('underflow to zero: 1e-325 m magnitude is 0', () => {
@@ -90,10 +91,13 @@ describe('TestValidLexicalForms', () => {
     expect(p!.unitString).to.equal('s-1')
   })
 
-  // should fail(reason="NM is not a valid UCUM unit")
-  it.skip('rejects invalid unit NM', () => {
+  it('NM is not a valid UCUM unit — parses but ill-typed', () => {
+    // so it returns non-null. The literal is ill-typed, NM is not a valid UCUM unit.
     const p = parseCdtLiteral('60 NM', UCUM)
-    expect(p).to.be.null  
+    expect(p).to.not.be.null
+    expect(p!.numericValue).to.equal(60)
+    expect(p!.unitString).to.equal('NM')
+    expect(validateUnit('NM').valid).to.be.false  
   })
 
   it('parses random valid combination: 1 s.cd/kg', () => {
