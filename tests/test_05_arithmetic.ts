@@ -2,6 +2,7 @@
  * test_05_arithmetic.ts
  *
  * Tests for CDT arithmetic: add, subtract, multiply, divide, convert.
+ *
  */
 
 import { expect } from 'chai'
@@ -18,6 +19,8 @@ import {
   parseCdtUnit,
   areCommensurable,
   CDT_IRIS,
+  UCUMDimensionError,
+  UCUMArithmeticError,
 } from '../src/index'
 
 // ---
@@ -111,9 +114,8 @@ describe('TestAddition', () => {
     expect(r.unitString).to.equal('N')
   })
 
-  it('incompatible dimensions returns null: 1 m + 1 kg', () => {
-    // JS returns null
-    expect(cdtAdd($rdf, lit('1 m'), lit('1 kg'))).to.be.null
+  it('incompatible dimensions throws UCUMDimensionError: 1 m + 1 kg', () => {
+    expect(() => cdtAdd($rdf, lit('1 m'), lit('1 kg'))).to.throw(UCUMDimensionError)
   })
 
 })
@@ -148,9 +150,8 @@ describe('TestSubtraction', () => {
     expect(r.unitString).to.equal('m')
   })
 
-  it('incompatible dimensions returns null: 1 m - 1 s', () => {
-    //  JS returns null
-    expect(cdtSubtract($rdf, lit('1 m'), lit('1 s'))).to.be.null
+  it('incompatible dimensions throws UCUMDimensionError: 1 m - 1 s', () => {
+    expect(() => cdtSubtract($rdf, lit('1 m'), lit('1 s'))).to.throw(UCUMDimensionError)
   })
 
 })
@@ -174,7 +175,6 @@ describe('TestScalarOperations', () => {
   })
 
   it('scalar * quantity (reversed): 3 * 5 km = 15 km', () => {
-    // Python: 3 * UCUMQuantity("5 km") via __rmul__
     const r = parseResult(cdtMultiply($rdf, intLit(3), lit('5 km')))
     expect(r.numericValue).to.equal(15)
   })
@@ -212,7 +212,6 @@ describe('TestDimensionChangingArithmetic', () => {
     expect(result).to.not.be.null
     const r = parseResult(result)
     expectNear(r.numericValue, 10)
-    // JS result unit is "(m)/(s)";
     expect(areCommensurable(r.unitString, 'm/s')).to.be.true
   })
 
@@ -339,12 +338,12 @@ describe('TestUnitConversion', () => {
     expectNear(r.numericValue, 1.0)
   })
 
-  it('incompatible conversion returns null: 1 m to kg', () => {
-    expect(cdtConvert($rdf, lit('1 m'), 'kg')).to.be.null
+  it('incompatible conversion throws UCUMDimensionError: 1 m to kg', () => {
+    expect(() => cdtConvert($rdf, lit('1 m'), 'kg')).to.throw(UCUMDimensionError)
   })
 
-  it('incompatible conversion returns null: 1 s to m', () => {
-    expect(cdtConvert($rdf, lit('1 s'), 'm')).to.be.null
+  it('incompatible conversion throws UCUMDimensionError: 1 s to m', () => {
+    expect(() => cdtConvert($rdf, lit('1 s'), 'm')).to.throw(UCUMDimensionError)
   })
 
 })
@@ -431,7 +430,7 @@ describe('TestDimensionlessArithmetic', () => {
 
 
 // ---
-// UCUMUnit
+// UCUMUnit 
 // ---
 
 describe('TestUCUMUnit', () => {

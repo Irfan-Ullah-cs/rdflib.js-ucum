@@ -2,6 +2,15 @@
  * rdflib-cdt — public API
  */
 
+// --- Errors ------------------
+export {
+  UCUMError,
+  UCUMParseError,
+  UCUMUnitError,
+  UCUMDimensionError,
+  UCUMArithmeticError,
+} from './cdt-errors'
+
 // --- Namespace & Constants ---
 export {
   CDT_NAMESPACE,

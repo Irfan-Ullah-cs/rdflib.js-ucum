@@ -6,6 +6,12 @@
  *
  * DESIGN: All comparisons use ucum-lhc's convertUnitTo() API directly.
  * This avoids any dependency on internal magnitude/dimension extraction.
+ *
+ * Error behaviour :
+ *   - cdtCompare throws UCUMParseError for non-CDT inputs
+ *   - cdtCompare throws UCUMDimensionError for incommensurable units
+ *   - cdtConvert throws UCUMDimensionError when conversion is not possible
+ *   - cdtCompareSafe catches all errors and returns null instead
  */
 
 import { parseCdtLiteral, ParsedCdtLiteral } from './cdt-literal'
@@ -14,6 +20,7 @@ import {
   CDT_IRIS,
 } from './cdt-namespace'
 import { convertValue, areCommensurable } from './ucum-service'
+import { UCUMParseError, UCUMDimensionError } from './cdt-errors'
 
 //---
 // Helpers to extract CDT info from rdflib Literal objects
@@ -70,8 +77,6 @@ export function cdtEquals(literal1: any, literal2: any): boolean {
 
 /**
  * Strict equality: same as cdtEquals but also requires the same datatype IRI.
- * So "1 m"^^cdt:length equals "1000 mm"^^cdt:length
- * but NOT "1 m"^^cdt:ucum (different datatype IRI, even though same value).
  */
 export function cdtStrictEquals(literal1: any, literal2: any): boolean {
   if (!literal1 || !literal2) return false
@@ -89,13 +94,16 @@ export function cdtStrictEquals(literal1: any, literal2: any): boolean {
  * Converts the first literal to the second's unit, then compares numerically.
  *
  * @returns -1 if a < b, 0 if a == b, +1 if a > b
- * @throws Error if the literals are not commensurable or not valid CDT
+ * @throws UCUMParseError if either argument is not a valid CDT quantity literal
+ * @throws UCUMDimensionError if the literals have different physical dimensions
  */
 export function cdtCompare(literal1: any, literal2: any): -1 | 0 | 1 {
   const a = tryParseCdt(literal1)
   const b = tryParseCdt(literal2)
   if (!a || !b) {
-    throw new Error('Cannot compare: one or both arguments are not valid CDT quantity literals')
+    throw new UCUMParseError(
+      'Cannot compare: one or both arguments are not valid CDT quantity literals'
+    )
   }
 
   // Fast path: same unit
@@ -109,7 +117,7 @@ export function cdtCompare(literal1: any, literal2: any): -1 | 0 | 1 {
   // Convert a to b's unit
   const aInBUnit = convertValue(a.numericValue, a.unitString, b.unitString)
   if (aInBUnit === null) {
-    throw new Error(
+    throw new UCUMDimensionError(
       `Cannot compare incommensurable quantities: ` +
       `"${a.lexicalForm}" (${a.unitString}) and "${b.lexicalForm}" (${b.unitString}) ` +
       `have different physical dimensions`
@@ -124,8 +132,8 @@ export function cdtCompare(literal1: any, literal2: any): -1 | 0 | 1 {
 }
 
 /**
- * Safe comparison that returns null for non-commensurable units
- * instead of throwing.
+ * Safe comparison that returns null instead of throwing.
+ * Catches UCUMParseError, UCUMDimensionError, and any other errors.
  */
 export function cdtCompareSafe(
   literal1: any,
@@ -164,7 +172,9 @@ export function cdtCommensurable(literal1: any, literal2: any): boolean {
  * @param rdflib The rdflib module
  * @param literal The source CDT literal
  * @param targetUnit The target UCUM unit expression
- * @returns A new rdflib Literal, or null if conversion fails
+ * @returns A new rdflib Literal
+ * @throws UCUMDimensionError if the source and target units are not commensurable
+ * @returns null if the input is not a valid CDT literal
  */
 export function cdtConvert(
   rdflib: any,
@@ -175,7 +185,11 @@ export function cdtConvert(
   if (!parsed) return null
 
   const converted = convertValue(parsed.numericValue, parsed.unitString, targetUnit)
-  if (converted === null) return null
+  if (converted === null) {
+    throw new UCUMDimensionError(
+      `Cannot convert "${parsed.unitString}" to "${targetUnit}": incompatible physical dimensions`
+    )
+  }
 
   const newLexical = `${converted} ${targetUnit}`
   return rdflib.literal(newLexical, literal.datatype)
