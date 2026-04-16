@@ -1,130 +1,99 @@
 /**
- * CDT DataFactory
- * 
- * A custom DataFactory that wraps rdflib.js's built-in factory and adds
- * CDT-aware behavior. When passed to a rdflib Store via opts.rdfFactory,
- * it enables correct indexing and duplicate detection for CDT literals.
- * 
- * Strategy: The factory overrides the `literal()` method to normalize CDT
- * lexical forms on creation. This means two equivalent CDT literals
- * (e.g. "1 km" and "1000 m") get the SAME normalized .value string,
- * so rdflib's native .equals() and id() work correctly without modification.
- * 
- * IMPORTANT: This changes the lexical form stored in the literal.
- * If you need to preserve original lexical forms, use the standard factory
- * and the comparison utilities from cdt-comparison.ts instead.
+ * CDT DataFactory — wraps rdflib's DataFactory to normalize CDT literals.
+ *
+ * Overrides literal(), quad(), and id() so that equivalent CDT values
+ * (e.g. "1 km" and "1000 m") are stored and indexed identically.
  */
 
 import { parseCdtLiteral, canonicalLexicalForm } from './cdt-literal'
-import { isCdtQuantityDatatype, CDT_IRIS, isCdtDatatype } from './cdt-namespace'
+import { isCdtQuantityDatatype } from './cdt-namespace'
 
-/**
- * Configuration options for the CDT DataFactory.
- */
 export interface CdtFactoryOptions {
-  /**
-   * If true, CDT literals are stored with their canonical (normalized) lexical form.
-   * This enables correct .equals() and store indexing for equivalent values.
-   * 
-   * If false, original lexical forms are preserved. You must use the
-   * cdtEquals() / cdtCompare() functions for value-based comparisons.
-   * 
-   * Default: true
-   */
+  /** Normalize CDT literals to canonical SI form on write. Default: true. */
   normalize?: boolean
 }
 
 /**
- * Create a CDT-aware DataFactory that wraps an existing rdflib DataFactory.
- * 
- * @param baseFactory The base rdflib DataFactory to wrap.
- *   Typically: `import { DataFactory } from 'rdflib'` or the store's existing rdfFactory.
- * @param options Configuration options
- * @returns A new DataFactory that normalizes CDT literals
- * 
+ * Wrap an rdflib DataFactory with CDT normalization.
+ *
  * @example
- *   import * as $rdf from 'rdflib'
- *   import { createCdtFactory } from 'rdflib-cdt'
- * 
  *   const factory = createCdtFactory($rdf.DataFactory)
  *   const store = $rdf.graph(undefined, { rdfFactory: factory })
- * 
- *   // Now the store correctly handles CDT literal equality:
- *   store.add(subj, pred, factory.literal("1 km", null, factory.namedNode(CDT.length)))
- *   store.holds(subj, pred, factory.literal("1000 m", null, factory.namedNode(CDT.length)))
- *   // → true!
+ *   const ucumDt = $rdf.namedNode(CDT_IRIS.ucum)
+ *
+ *   store.add(subj, pred, $rdf.literal('1 km', ucumDt))
+ *   store.holds(subj, pred, $rdf.literal('1000 m', ucumDt))  //  true
  */
 export function createCdtFactory(
   baseFactory: any,
   options: CdtFactoryOptions = {}
 ): any {
-  const normalize = options.normalize !== false // default true
+  const normalize = options.normalize !== false
 
-  // Create a proxy object that delegates everything to baseFactory
-  // but intercepts literal() calls for CDT normalization
   const cdtFactory = Object.create(baseFactory)
-
-  // Copy all enumerable properties (handles the spread-style factories in rdflib)
   for (const key of Object.keys(baseFactory)) {
-    if (typeof baseFactory[key] === 'function') {
-      cdtFactory[key] = baseFactory[key].bind(baseFactory)
-    } else {
-      cdtFactory[key] = baseFactory[key]
-    }
+    cdtFactory[key] = typeof baseFactory[key] === 'function'
+      ? baseFactory[key].bind(baseFactory)
+      : baseFactory[key]
   }
 
-  // Override literal() to normalize CDT lexical forms
   const originalLiteral = baseFactory.literal.bind(baseFactory)
 
+  // Returns a normalized literal if value is a CDT quantity, otherwise null.
+  function normalizeCdtLiteral(value: string, languageOrDatatype: any): any | null {
+    if (!normalize || !languageOrDatatype) return null
+    const dtIri = typeof languageOrDatatype === 'string'
+      ? (languageOrDatatype.indexOf(':') !== -1 ? languageOrDatatype : null)
+      : languageOrDatatype?.value
+    if (!dtIri || !isCdtQuantityDatatype(dtIri)) return null
+    const parsed = parseCdtLiteral(value, dtIri)
+    if (!parsed) return null
+    return originalLiteral(canonicalLexicalForm(parsed), languageOrDatatype)
+  }
+
+  // Normalize on literal creation (store.literal(), parser output).
   cdtFactory.literal = function (
     value: string | number | boolean | Date,
     languageOrDatatype?: string | any
-  ) {
-    // Only intercept when normalize is on and we have a CDT datatype
-    if (normalize && typeof value === 'string' && languageOrDatatype) {
-      const dtIri = typeof languageOrDatatype === 'string'
-        ? (languageOrDatatype.indexOf(':') !== -1 ? languageOrDatatype : null)
-        : languageOrDatatype?.value
-
-      if (dtIri && isCdtQuantityDatatype(dtIri)) {
-        const parsed = parseCdtLiteral(value, dtIri)
-        if (parsed) {
-          const normalizedLexical = canonicalLexicalForm(parsed)
-          return originalLiteral(normalizedLexical, languageOrDatatype)
-        }
-      }
+  ): any {
+    if (typeof value === 'string') {
+      const normalized = normalizeCdtLiteral(value, languageOrDatatype)
+      if (normalized) return normalized
     }
-
     return originalLiteral(value, languageOrDatatype)
   }
 
-  // Override id() to produce canonical IDs for CDT literals
-  // This is a safety net: even if normalization is off, the index hash
-  // will be the same for equivalent CDT values
-  if (baseFactory.id) {
-    const originalId = baseFactory.id.bind(baseFactory)
-
-    cdtFactory.id = function (term: any): string {
-      if (!term) return originalId(term)
-
-      // For CDT quantity literals, produce a canonical ID
-      if (term.termType === 'Literal' && term.datatype?.value) {
-        const dtIri = term.datatype.value
-        if (isCdtQuantityDatatype(dtIri)) {
-          const parsed = parseCdtLiteral(term.value, dtIri)
-          if (parsed) {
-            // Build a canonical NQ representation
-            const canonLex = canonicalLexicalForm(parsed)
-            return `"${canonLex}"^^<${dtIri}>`
-          }
+  // Normalize on quad assembly — fires for every store.add() call,
+  // including literals created via the global $rdf.literal().
+  if (baseFactory.quad) {
+    const originalQuad = baseFactory.quad.bind(baseFactory)
+    cdtFactory.quad = function (subject: any, predicate: any, object: any, graph: any): any {
+      if (normalize && object?.termType === 'Literal' && object.datatype?.value
+          && isCdtQuantityDatatype(object.datatype.value)) {
+        const parsed = parseCdtLiteral(object.value, object.datatype.value)
+        if (parsed) {
+          object = originalLiteral(canonicalLexicalForm(parsed), object.datatype)
         }
       }
+      return originalQuad(subject, predicate, object, graph)
+    }
+  }
 
+  // Canonical index key — ensures equivalent CDT values land in the same bucket.
+  if (baseFactory.id) {
+    const originalId = baseFactory.id.bind(baseFactory)
+    cdtFactory.id = function (term: any): string {
+      if (term?.termType === 'Literal' && term.datatype?.value
+          && isCdtQuantityDatatype(term.datatype.value)) {
+        const parsed = parseCdtLiteral(term.value, term.datatype.value)
+        if (parsed) {
+          return `"${canonicalLexicalForm(parsed)}"^^<${term.datatype.value}>`
+        }
+      }
       return originalId(term)
     }
   }
 
-  // Copy the supports object if it exists
   if (baseFactory.supports) {
     cdtFactory.supports = { ...baseFactory.supports }
   }

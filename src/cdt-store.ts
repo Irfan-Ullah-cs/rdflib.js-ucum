@@ -1,71 +1,72 @@
 /**
- * CDT Store
- * 
- * Convenience functions to create CDT-enabled rdflib stores and 
- * CDT-aware query wrappers for when you need value-based matching
- * without normalizing lexical forms.
+ * CDT Store — CDT-enabled store factory and value-based query wrappers.
  */
 
 import { createCdtFactory, CdtFactoryOptions } from './cdt-factory'
 import { cdtEquals, tryParseCdt } from './cdt-comparison'
-import { isCdtQuantityDatatype } from './cdt-namespace'
+import { parseCdtLiteral, canonicalLexicalForm } from './cdt-literal'
+import { isCdtQuantityDatatype, CDT_IRIS } from './cdt-namespace'
 
 /**
  * Create a CDT-enabled rdflib Store.
- * 
- * This is the simplest way to get started. It creates a store that
- * automatically normalizes CDT literals so that equivalent values
- * (like "1 km" and "1000 m") are treated as equal.
- * 
- * @param rdflib The rdflib module (import * as $rdf from 'rdflib')
- * @param features Optional store features (e.g. ['sameAs'])
- * @param factoryOptions Options for the CDT factory
- * @returns A new rdflib Store with CDT support
- * 
+ *
+ * CDT literals are normalized to SI canonical form on write, so rdflib's
+ * native holds(), any(), each(), and statementsMatching() all work correctly
+ * across equivalent units (e.g. "1 km" equals "1000 m").
+ *
  * @example
- *   import * as $rdf from 'rdflib'
- *   import { createCdtStore, CDT_IRIS } from 'rdflib-cdt'
- * 
  *   const store = createCdtStore($rdf)
- *   const subj = $rdf.namedNode('http://example.org/sensor1')
- *   const pred = $rdf.namedNode('http://example.org/measures')
- *   const cdt = $rdf.namedNode(CDT_IRIS.length)
- * 
- *   store.add(subj, pred, $rdf.literal("1 km", null, cdt))
- *   
- *   // This now works because "1000 m" normalizes to the same value as "1 km":
- *   store.holds(subj, pred, $rdf.literal("1000 m", null, cdt))
- *   // → true
+ *   store.add(subj, pred, $rdf.literal('1 km', $rdf.namedNode(CDT_IRIS.ucum)))
+ *   store.holds(subj, pred, $rdf.literal('1000 m', $rdf.namedNode(CDT_IRIS.ucum)))  // -> true
+ *
+ *   // or use the helper:
+ *   store.add(subj, pred, cdtStoreLiteral(store, 90, 'km/h'))
+ *   store.holds(subj, pred, cdtStoreLiteral(store, 25, 'm/s'))  // -> true
  */
 export function createCdtStore(
   rdflib: any,
   features?: any,
   factoryOptions?: CdtFactoryOptions
 ): any {
+  const normalize = factoryOptions?.normalize !== false
   const baseFactory = rdflib.DataFactory
   const cdtFactory = createCdtFactory(baseFactory, factoryOptions)
-  return new rdflib.Store(features, { rdfFactory: cdtFactory })
+  const store = new rdflib.Store(features, { rdfFactory: cdtFactory })
+
+  if (normalize) {
+    // statementsMatching uses term.equals() for candidate filtering, which
+    // compares raw lexical strings. Normalize the query object so both sides
+    // of the equals check carry the same canonical form.
+    const originalSM = store.statementsMatching.bind(store)
+    store.statementsMatching = function(
+      subj?: any, pred?: any, obj?: any, why?: any, justOne?: boolean
+    ): any[] {
+      if (obj?.termType === 'Literal' && obj.datatype?.value
+          && isCdtQuantityDatatype(obj.datatype.value)) {
+        const parsed = parseCdtLiteral(obj.value, obj.datatype.value)
+        if (parsed) obj = cdtFactory.literal(canonicalLexicalForm(parsed), obj.datatype)
+      }
+      return originalSM(subj, pred, obj, why, justOne)
+    }
+  }
+
+  return store
 }
 
 /**
- * CDT-aware wrapper for statementsMatching that handles value-based
- * matching for CDT literals.
- * 
- * Use this when you want to keep original lexical forms (normalize=false)
- * but still need value-based matching.
- * 
- * @param store An rdflib Store
- * @param subj Subject to match (or null/undefined for wildcard)
- * @param pred Predicate to match (or null/undefined for wildcard)
- * @param obj Object to match (or null/undefined for wildcard)
- * @param why Graph to match (or null/undefined for wildcard)
- * @returns Array of matching statements
- * 
+ * Create a CDT quantity literal through the store's CDT factory.
+ *
  * @example
- *   // Store has: <s> <p> "90 km/h"^^cdt:speed
- *   // Query for: <s> <p> "25 m/s"^^cdt:speed
- *   cdtStatementsMatching(store, s, p, $rdf.literal("25 m/s", null, speedDt))
- *   // → finds the "90 km/h" statement because they have the same value
+ *   store.add(sensor, temp, cdtStoreLiteral(store, 100, 'Cel'))
+ *   store.holds(sensor, temp, cdtStoreLiteral(store, 373.15, 'K'))  // -> true
+ */
+export function cdtStoreLiteral(store: any, value: number, unit: string): any {
+  return store.literal(`${value} ${unit}`, store.namedNode(CDT_IRIS.ucum))
+}
+
+/**
+ * Value-based statementsMatching for a plain store.
+ * Matches CDT literals by physical value, not lexical form.
  */
 export function cdtStatementsMatching(
   store: any,
@@ -74,119 +75,61 @@ export function cdtStatementsMatching(
   obj?: any,
   why?: any
 ): any[] {
-  // If obj is not a CDT literal, delegate directly to the store
-  if (!obj || obj.termType !== 'Literal' || 
-      !obj.datatype?.value || !isCdtQuantityDatatype(obj.datatype.value)) {
+  if (!obj || obj.termType !== 'Literal'
+      || !obj.datatype?.value || !isCdtQuantityDatatype(obj.datatype.value)) {
     return store.statementsMatching(subj, pred, obj, why)
   }
-
-  // For CDT object patterns: get all statements matching s, p, ?, g
-  // then filter by CDT value equality
   const candidates = store.statementsMatching(subj, pred, undefined, why)
-  
   return candidates.filter((st: any) => {
-    const stObj = st.object
-    if (!stObj || stObj.termType !== 'Literal') return false
-    if (!stObj.datatype?.value || !isCdtQuantityDatatype(stObj.datatype.value)) return false
-    return cdtEquals(stObj, obj)
+    const o = st.object
+    return o?.termType === 'Literal'
+      && isCdtQuantityDatatype(o.datatype?.value)
+      && cdtEquals(o, obj)
   })
 }
 
-/**
- * CDT-aware `any()` — find any object matching a CDT value.
- * 
- * @param store An rdflib Store
- * @param subj Subject to match
- * @param pred Predicate to match
- * @param obj Object CDT literal to match by value (or undefined for any)
- * @param why Graph to match
- * @returns The first matching term, or undefined
- */
+/** Value-based any() for a plain store. */
 export function cdtAny(
-  store: any,
-  subj?: any,
-  pred?: any,
-  obj?: any,
-  why?: any
+  store: any, subj?: any, pred?: any, obj?: any, why?: any
 ): any | undefined {
   const results = cdtStatementsMatching(store, subj, pred, obj, why)
   if (results.length === 0) return undefined
-  
-  // Return the term in the wildcard position
   if (!subj) return results[0].subject
   if (!pred) return results[0].predicate
-  if (!obj) return results[0].object
-  if (!why) return results[0].graph
+  if (!obj)  return results[0].object
+  if (!why)  return results[0].graph
   return results[0].object
 }
 
-/**
- * CDT-aware `holds()` — check if a statement with CDT value equality exists.
- * 
- * @param store An rdflib Store
- * @param subj Subject
- * @param pred Predicate
- * @param obj Object (CDT literal for value-based matching)
- * @param why Graph
- * @returns true if a matching statement exists
- */
+/** Value-based holds() for a plain store. */
 export function cdtHolds(
-  store: any,
-  subj?: any,
-  pred?: any,
-  obj?: any,
-  why?: any
+  store: any, subj?: any, pred?: any, obj?: any, why?: any
 ): boolean {
   return cdtStatementsMatching(store, subj, pred, obj, why).length > 0
 }
 
 /**
- * Find all CDT quantity literals in the store for a given subject and predicate,
- * and return them sorted by value (ascending).
- * 
- * @param store An rdflib Store
- * @param subj The subject
- * @param pred The predicate
- * @param why Optional graph filter
- * @returns Array of CDT literal objects, sorted by canonical value
+ * Return all CDT literals for a subject/predicate, sorted ascending by
+ * canonical SI value. Works on plain and CDT stores.
  */
-export function cdtSortedValues(
-  store: any,
-  subj: any,
-  pred: any,
-  why?: any
-): any[] {
+export function cdtSortedValues(store: any, subj: any, pred: any, why?: any): any[] {
   const statements = store.statementsMatching(subj, pred, undefined, why)
-  
   const cdtLiterals = statements
     .map((st: any) => st.object)
-    .filter((obj: any) => {
-      return obj?.termType === 'Literal' &&
-        obj.datatype?.value &&
-        isCdtQuantityDatatype(obj.datatype.value) &&
-        tryParseCdt(obj) !== null
-    })
-
-  cdtLiterals.sort((a: any, b: any) => {
-    const pa = tryParseCdt(a)!
-    const pb = tryParseCdt(b)!
-    return pa.canonicalValue - pb.canonicalValue
-  })
-
+    .filter((obj: any) =>
+      obj?.termType === 'Literal'
+      && isCdtQuantityDatatype(obj.datatype?.value)
+      && tryParseCdt(obj) !== null
+    )
+  cdtLiterals.sort((a: any, b: any) =>
+    tryParseCdt(a)!.canonicalValue - tryParseCdt(b)!.canonicalValue
+  )
   return cdtLiterals
 }
 
 /**
- * Filter statements from the store where the CDT object value
- * falls within a range.
- * 
- * @param store An rdflib Store
- * @param subj Subject pattern
- * @param pred Predicate pattern
- * @param min Minimum value (CDT literal, inclusive)
- * @param max Maximum value (CDT literal, inclusive)
- * @param why Optional graph filter
- * @returns Matching statements
+ * Return statements where the CDT object value falls within [min, max].
+ * Bounds can use any commensurable unit. Works on plain and CDT stores.
  */
 export function cdtStatementsInRange(
   store: any,
@@ -199,13 +142,10 @@ export function cdtStatementsInRange(
   const parsedMin = tryParseCdt(min)
   const parsedMax = tryParseCdt(max)
   if (!parsedMin || !parsedMax) return []
-
-  const statements = store.statementsMatching(subj, pred, undefined, why)
-
-  return statements.filter((st: any) => {
+  return store.statementsMatching(subj, pred, undefined, why).filter((st: any) => {
     const parsed = tryParseCdt(st.object)
-    if (!parsed) return false
-    return parsed.canonicalValue >= parsedMin.canonicalValue &&
-           parsed.canonicalValue <= parsedMax.canonicalValue
+    return parsed
+      && parsed.canonicalValue >= parsedMin.canonicalValue
+      && parsed.canonicalValue <= parsedMax.canonicalValue
   })
 }

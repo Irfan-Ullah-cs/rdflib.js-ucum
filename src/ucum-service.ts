@@ -4,9 +4,9 @@
  * Wraps @lhncbc/ucum-lhc using ONLY its public API.
  *
  * Public API used:
- *   utils.validateUnitString(str, true)        → ucumCode, status
- *   utils.convertUnitTo(from, val, to, false)  → toVal, status
- *   utils.convertToBaseUnits(str, val)         → magnitude, unitToExp, fromUnitIsSpecial, status
+ *   utils.validateUnitString(str, true)        -> ucumCode, status
+ *   utils.convertUnitTo(from, val, to, false)  -> toVal, status
+ *   utils.convertToBaseUnits(str, val)         -> magnitude, unitToExp, fromUnitIsSpecial, status
  *
  * Zero internal property access (no dimVec_, magnitude_, cnv_, isSpecial_).
  */
@@ -124,7 +124,7 @@ export function getUnitMeta(unitStr: string): UnitMeta | null {
     const rawExp = r.unitToExp as Record<string, number>
     const unitToExp: Record<string, number> = {}
     for (const k of Object.keys(rawExp).sort()) {
-      unitToExp[k] = rawExp[k]
+      unitToExp[k] = rawExp[k]!
     }
 
     const meta: UnitMeta = {
@@ -143,9 +143,9 @@ export function getUnitMeta(unitStr: string): UnitMeta | null {
 }
 /**
  * Build a SI base unit string from a named dimension map.
- * { m:1, s:-1 } → "m.s-1"
- * { K:1 }       → "K"
- * {}             → "1"  (dimensionless)
+ * { m:1, s:-1 } -> "m.s-1"
+ * { K:1 }       -> "K"
+ * {}             -> "1"  (dimensionless)
  */
 export function unitExpToSiBaseUnit(unitToExp: Record<string, number>): string {
   const parts: string[] = []
@@ -222,10 +222,10 @@ export function dimensionsEqual(unit1: string, unit2: string): boolean {
 
 /**
  * Find the SI base unit string for a given unit expression.
- * findBaseUnit('km')   → 'm'
- * findBaseUnit('km/h') → 'm.s-1'
- * findBaseUnit('Cel')  → 'K'
- * findBaseUnit('N')    → 'm.s-2.g'
+ * findBaseUnit('km')   -> 'm'
+ * findBaseUnit('km/h') -> 'm.s-1'
+ * findBaseUnit('Cel')  -> 'K'
+ * findBaseUnit('N')    -> 'm.s-2.g'
  */
 export function findBaseUnit(unitStr: string): string {
   const meta = getUnitMeta(unitStr)

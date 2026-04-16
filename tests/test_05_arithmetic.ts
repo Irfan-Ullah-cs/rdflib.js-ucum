@@ -253,7 +253,7 @@ describe('TestDimensionChangingArithmetic', () => {
   it('dimensionless from same-unit division: 5 m / 5 m = 1 (xsd:decimal)', () => {
     const result = cdtDivide($rdf, lit('5 m'), lit('5 m'))
     expect(result).to.not.be.null
-    // Same unit → cdtDivide returns xsd:decimal, not cdt:ucum
+    // Same unit -> cdtDivide returns xsd:decimal, not cdt:ucum
     expect(result.datatype.value).to.equal(XSD_DECIMAL)
     expectNear(parseFloat(result.value), 1.0)
   })
@@ -412,7 +412,7 @@ describe('TestDimensionlessArithmetic', () => {
     expect(cdtEquals(lit('50 %'), lit('0.5 1'))).to.be.true
   })
 
-  it('dimensionless from division: 5 m / 5 m → xsd:decimal 1', () => {
+  it('dimensionless from division: 5 m / 5 m -> xsd:decimal 1', () => {
     const result = cdtDivide($rdf, lit('5 m'), lit('5 m'))
     expect(result).to.not.be.null
     expect(result.datatype.value).to.equal(XSD_DECIMAL)

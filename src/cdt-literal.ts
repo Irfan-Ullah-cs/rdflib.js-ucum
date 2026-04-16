@@ -56,7 +56,7 @@ export function parseCdtLiteral(
     rawValue   = match[1]!
     unitString = match[2]!.trim()
   } else {
-    // Fallback: bare number → dimensionless unit "1"
+    // Fallback: bare number -> dimensionless unit "1"
     const bareMatch = lexicalForm.trim().match(CDT_BARE_NUMBER_REGEX)
     if (!bareMatch) return null
     rawValue   = bareMatch[1]!
@@ -125,7 +125,8 @@ export function canonicalKey(parsed: ParsedCdtLiteral): string {
  * The base unit is derived dynamically from the dimension vector.
  */
 export function canonicalLexicalForm(parsed: ParsedCdtLiteral): string {
-  return `${parsed.canonicalValue} ${parsed.baseUnit}`
+  const rounded = parseFloat(parsed.canonicalValue.toPrecision(12))
+  return `${rounded} ${parsed.baseUnit}`
 }
 
 // ------

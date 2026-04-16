@@ -51,7 +51,7 @@ export function tryParseCdt(literal: any): ParsedCdtLiteral | null {
  *   - "1 km" == "1000 m"  (same value, same dimension)
  *   - "90 km/h" == "25 m/s"  (both normalize to 25 m/s)
  *   - "0 Cel" == "273.15 K"  (temperature offset handled)
- *   - "1 km" != "1 kg"  (different dimensions → not convertible)
+ *   - "1 km" != "1 kg"  (different dimensions -> not convertible)
  *
  * @returns true if equal, false otherwise. Returns false for non-CDT literals.
  */

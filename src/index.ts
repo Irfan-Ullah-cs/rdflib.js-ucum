@@ -81,6 +81,7 @@ export type { CdtFactoryOptions } from './cdt-factory'
 
 export {
   createCdtStore,
+  cdtStoreLiteral,
   cdtStatementsMatching,
   cdtAny,
   cdtHolds,
