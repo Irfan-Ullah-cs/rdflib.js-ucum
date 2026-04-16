@@ -1,27 +1,20 @@
 /**
  * CDT Store — CDT-enabled store factory and value-based query wrappers.
+ * Literals are stored with their original lexical form (RDF spec compliant).
  */
 
 import { createCdtFactory, CdtFactoryOptions } from './cdt-factory'
 import { cdtEquals, tryParseCdt } from './cdt-comparison'
-import { parseCdtLiteral, canonicalLexicalForm } from './cdt-literal'
 import { isCdtQuantityDatatype, CDT_IRIS } from './cdt-namespace'
 
 /**
  * Create a CDT-enabled rdflib Store.
  *
- * CDT literals are normalized to SI canonical form on write, so rdflib's
- * native holds(), any(), each(), and statementsMatching() all work correctly
- * across equivalent units (e.g. "1 km" equals "1000 m").
- *
  * @example
  *   const store = createCdtStore($rdf)
- *   store.add(subj, pred, $rdf.literal('1 km', $rdf.namedNode(CDT_IRIS.ucum)))
- *   store.holds(subj, pred, $rdf.literal('1000 m', $rdf.namedNode(CDT_IRIS.ucum)))  // -> true
- *
- *   // or use the helper:
- *   store.add(subj, pred, cdtStoreLiteral(store, 90, 'km/h'))
- *   store.holds(subj, pred, cdtStoreLiteral(store, 25, 'm/s'))  // -> true
+ *   const dt = $rdf.namedNode(CDT_IRIS.ucum)
+ *   store.add(subj, pred, $rdf.literal('90 km/h', dt))
+ *   store.holds(subj, pred, $rdf.literal('25 m/s', dt))  // -> true
  */
 export function createCdtStore(
   rdflib: any,
@@ -29,22 +22,24 @@ export function createCdtStore(
   factoryOptions?: CdtFactoryOptions
 ): any {
   const normalize = factoryOptions?.normalize !== false
-  const baseFactory = rdflib.DataFactory
-  const cdtFactory = createCdtFactory(baseFactory, factoryOptions)
+  const cdtFactory = createCdtFactory(rdflib.DataFactory, factoryOptions)
   const store = new rdflib.Store(features, { rdfFactory: cdtFactory })
 
   if (normalize) {
-    // statementsMatching uses term.equals() for candidate filtering, which
-    // compares raw lexical strings. Normalize the query object so both sides
-    // of the equals check carry the same canonical form.
+    // When obj is a CDT literal, bypass the object index and filter by value.
     const originalSM = store.statementsMatching.bind(store)
     store.statementsMatching = function(
       subj?: any, pred?: any, obj?: any, why?: any, justOne?: boolean
     ): any[] {
       if (obj?.termType === 'Literal' && obj.datatype?.value
           && isCdtQuantityDatatype(obj.datatype.value)) {
-        const parsed = parseCdtLiteral(obj.value, obj.datatype.value)
-        if (parsed) obj = cdtFactory.literal(canonicalLexicalForm(parsed), obj.datatype)
+        const candidates = originalSM(subj, pred, undefined, why)
+        const results = candidates.filter((st: any) =>
+          st.object?.termType === 'Literal'
+          && isCdtQuantityDatatype(st.object.datatype?.value)
+          && cdtEquals(st.object, obj)
+        )
+        return justOne ? results.slice(0, 1) : results
       }
       return originalSM(subj, pred, obj, why, justOne)
     }
@@ -54,7 +49,7 @@ export function createCdtStore(
 }
 
 /**
- * Create a CDT quantity literal through the store's CDT factory.
+ * Create a CDT quantity literal.
  *
  * @example
  *   store.add(sensor, temp, cdtStoreLiteral(store, 100, 'Cel'))
@@ -64,10 +59,7 @@ export function cdtStoreLiteral(store: any, value: number, unit: string): any {
   return store.literal(`${value} ${unit}`, store.namedNode(CDT_IRIS.ucum))
 }
 
-/**
- * Value-based statementsMatching for a plain store.
- * Matches CDT literals by physical value, not lexical form.
- */
+/** Value-based statementsMatching for a plain store. */
 export function cdtStatementsMatching(
   store: any,
   subj?: any,
@@ -108,10 +100,7 @@ export function cdtHolds(
   return cdtStatementsMatching(store, subj, pred, obj, why).length > 0
 }
 
-/**
- * Return all CDT literals for a subject/predicate, sorted ascending by
- * canonical SI value. Works on plain and CDT stores.
- */
+/** CDT literals for a subject/predicate sorted ascending by canonical SI value. */
 export function cdtSortedValues(store: any, subj: any, pred: any, why?: any): any[] {
   const statements = store.statementsMatching(subj, pred, undefined, why)
   const cdtLiterals = statements
@@ -127,10 +116,7 @@ export function cdtSortedValues(store: any, subj: any, pred: any, why?: any): an
   return cdtLiterals
 }
 
-/**
- * Return statements where the CDT object value falls within [min, max].
- * Bounds can use any commensurable unit. Works on plain and CDT stores.
- */
+/** Statements where the CDT object value falls within [min, max]. */
 export function cdtStatementsInRange(
   store: any,
   subj: any | undefined,
