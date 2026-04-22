@@ -22,7 +22,8 @@ export function createCdtStore(
   factoryOptions?: CdtFactoryOptions
 ): any {
   const normalize = factoryOptions?.normalize !== false
-  const cdtFactory = createCdtFactory(rdflib.DataFactory, factoryOptions)
+  const baseFactory = rdflib.DataFactory ?? new rdflib.Store().rdfFactory
+  const cdtFactory = createCdtFactory(baseFactory, factoryOptions)
   const store = new rdflib.Store(features, { rdfFactory: cdtFactory })
 
   if (normalize) {
