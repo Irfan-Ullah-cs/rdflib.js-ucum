@@ -1,7 +1,7 @@
 {
-  "name": "rdflib-cdt",
+  "name": "rdflib.js-ucum",
   "version": "0.1.0",
-  "description": "Standalone extension for rdflib.js — Custom Datatypes (CDT) with UCUM unit-aware equality, comparison, conversion, and arithmetic.",
+  "description": "Standalone extension for rdflib.js, Custom Datatypes (CDT) with UCUM unit-aware equality, comparison, conversion, and arithmetic.",
   "main": "lib/index.js",
   "module": "esm/index.js",
   "types": "lib/index.d.ts",
