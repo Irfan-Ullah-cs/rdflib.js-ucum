@@ -21,10 +21,12 @@ export function createCdtStore(
   features?: any,
   factoryOptions?: CdtFactoryOptions
 ): any {
+  // Handle both ESM namespace import (import * as $rdf) and default import (import $rdf)
+  const rdf = rdflib?.default ?? rdflib
   const normalize = factoryOptions?.normalize !== false
-  const baseFactory = rdflib.DataFactory ?? new rdflib.Store().rdfFactory
+  const baseFactory = rdf.DataFactory ?? new rdf.Store().rdfFactory
   const cdtFactory = createCdtFactory(baseFactory, factoryOptions)
-  const store = new rdflib.Store(features, { rdfFactory: cdtFactory })
+  const store = new rdf.Store(features, { rdfFactory: cdtFactory })
 
   if (normalize) {
     // When obj is a CDT literal, bypass the object index and filter by value.
