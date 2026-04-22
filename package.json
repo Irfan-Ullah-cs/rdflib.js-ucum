@@ -14,6 +14,7 @@
     "build": "tsc -p tsconfig.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:all": "npm run build && npm run build:esm",
+    "prepare": "npm run build:all",
     "test": "mocha --require ./tests/register.js tests/**/*.ts",
     "test:verify": "node tests/verify.js",
     "test:test": "node tests/test.js",
