@@ -1,8 +1,3 @@
-/**
- * rdflib-cdt — public API
- */
-
-// --- Errors ------------------
 export {
   UCUMError,
   UCUMParseError,
@@ -11,7 +6,6 @@ export {
   UCUMArithmeticError,
 } from './cdt-errors'
 
-// --- Namespace & Constants ---
 export {
   CDT_NAMESPACE,
   CDT_IRIS,
@@ -20,7 +14,6 @@ export {
   getCdtKind,
 } from './cdt-namespace'
 
-// --- UCUM Service ------------
 export {
   assertUcumInternalsAvailable,
   getUnitMeta,
@@ -38,22 +31,17 @@ export type {
   CanonicalValue,
 } from './ucum-service'
 
-// --- CDT Literal -------------
 export {
   parseCdtLiteral,
   parseCdtUnit,
-  validateCdtDimension,
   canonicalKey,
   canonicalLexicalForm,
-  cdtLiteral,
-  cdtUnitLiteral,
 } from './cdt-literal'
 export type {
   ParsedCdtLiteral,
   ParsedCdtUnit,
 } from './cdt-literal'
 
-// --- CDT Comparison ----------
 export {
   tryParseCdt,
   cdtEquals,
@@ -65,7 +53,6 @@ export {
   cdtValueIn,
 } from './cdt-comparison'
 
-// --- CDT Arithmetic ----------
 export {
   cdtAdd,
   cdtSubtract,
@@ -73,18 +60,5 @@ export {
   cdtDivide,
 } from './cdt-arithmetic'
 
-// --- CDT Factory & Store -----
-export {
-  createCdtFactory,
-} from './cdt-factory'
-export type { CdtFactoryOptions } from './cdt-factory'
-
-export {
-  createCdtStore,
-  cdtStoreLiteral,
-  cdtStatementsMatching,
-  cdtAny,
-  cdtHolds,
-  cdtSortedValues,
-  cdtStatementsInRange,
-} from './cdt-store'
+export { createCdtFactory } from './cdt-factory'
+export { createCdtStore } from './cdt-store'

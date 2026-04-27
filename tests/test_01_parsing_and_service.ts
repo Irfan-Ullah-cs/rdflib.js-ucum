@@ -8,7 +8,7 @@
  **/
 
 import { expect } from 'chai'
-import { parseCdtLiteral, parseCdtUnit, cdtLiteral, cdtUnitLiteral } from '../src/cdt-literal'
+import { parseCdtLiteral, parseCdtUnit} from '../src/cdt-literal'
 import { CDT_IRIS } from '../src/cdt-namespace'
 import { getUnitMeta, validateUnit } from '../src/ucum-service'
 
@@ -182,15 +182,15 @@ describe('TestInvalidLexicalForms', () => {
 describe('TestRegistration', () => {
 
   it('cdtLiteral round-trips through parseCdtLiteral', () => {
-    const lit = cdtLiteral(mockRdf, 1, 'm')
+    const lit = mockRdf.literal('1 m', mockRdf.namedNode(CDT_IRIS.ucum))
     const p = parseCdtLiteral(lit.value, lit.datatype.value)
     expect(p).to.not.be.null
     expect(p!.numericValue).to.equal(1)
     expect(p!.unitString).to.equal('m')
-  })
+  })  
 
-  it('cdtUnitLiteral round-trips through parseCdtUnit ', () => {
-    const lit = cdtUnitLiteral(mockRdf, 'km')
+  it('cdtUnitLiteral round-trips through parseCdtUnit', () => {
+    const lit = mockRdf.literal('km', mockRdf.namedNode(CDT_IRIS.ucumunit))
     const u = parseCdtUnit(lit.value)
     expect(u).to.not.be.null
     expect(u!.unitString).to.not.be.empty
