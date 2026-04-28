@@ -1,4 +1,4 @@
-## To do# rdflib.js-ucum
+# rdflib.js-ucum
 
 **UCUM custom datatypes for rdflib.js** - unit-aware equality, comparison, arithmetic, and CDT literal support.
 
