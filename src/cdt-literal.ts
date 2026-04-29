@@ -24,7 +24,7 @@ export interface ParsedCdtUnit {
   lexicalForm: string
 }
 
-const CDT_QUANTITY_REGEX = /^([+\-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+\-]?\d+)?)\s+(.+)$/
+const CDT_QUANTITY_REGEX = /^([+\-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+\-]?\d+)?)\s+(\S+)$/
 const CDT_BARE_NUMBER_REGEX = /^([+\-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+\-]?\d+)?)$/
 
 export function parseCdtLiteral(
@@ -39,10 +39,10 @@ export function parseCdtLiteral(
   const match = lexicalForm.match(CDT_QUANTITY_REGEX)
   if (match) {
     rawValue   = match[1]!
-    unitString = match[2]!.trim()
+    unitString = match[2]!
   } else {
     // bare number — treat as dimensionless unit "1"
-    const bareMatch = lexicalForm.trim().match(CDT_BARE_NUMBER_REGEX)
+    const bareMatch = lexicalForm.match(CDT_BARE_NUMBER_REGEX)
     if (!bareMatch) return null
     rawValue   = bareMatch[1]!
     unitString = '1'
