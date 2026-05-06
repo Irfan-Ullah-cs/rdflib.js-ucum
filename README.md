@@ -20,7 +20,7 @@ There are three layers. `createCdtStore` wraps rdflib.js's `statementsMatching` 
 
 All UCUM parsing and conversion goes through [`@lhncbc/ucum-lhc`](https://github.com/lhncbc/ucum-lhc) (NIH/NLM), via a service layer that only calls the library's public API. Parsed unit metadata is cached, so you don't pay the lookup cost twice for the same unit string.
 
-The comparison, conversion, and arithmetic functions work on plain rdflib.js `Literal` objects and return new ones. They don't mutate anything, and they don't need a CDT store to run - you can use them standalone.
+`UCUMOperations` is the entry point for all comparison, conversion, and arithmetic. Construct it once with your rdflib instance; the API mirrors the Java sibling library (`jena-ucum`).
 
 ## Installation
 
@@ -40,17 +40,9 @@ npm install github:Irfan-Ullah-cs/rdflib.js-ucum
 
 ```javascript
 const $rdf = require('rdflib')
-const {
-  createCdtStore,
-  CDT_IRIS,
-  cdtCompare,
-  cdtConvert,
-  cdtAdd,
-  cdtSubtract,
-  cdtMultiply,
-  cdtDivide,
-} = require('rdflib.js-ucum')
+const { UCUMOperations, createCdtStore, CDT_IRIS } = require('rdflib.js-ucum')
 
+const ops = new UCUMOperations($rdf)
 const EX  = $rdf.Namespace('https://example.org/')
 const CDT = $rdf.namedNode(CDT_IRIS.ucum)
 const lit = (s) => $rdf.literal(s, CDT)
@@ -66,22 +58,47 @@ console.log('holds 30 m/s:',     store.holds(EX('sensor'), EX('speed'), lit('30 
 console.log('holds 0 Cel:',      store.holds(EX('sensor'), EX('temp'),  lit('0 Cel')))    // true
 
 // --- Comparison ---
-console.log('1 km vs 500 m:',    cdtCompare(lit('1 km'),  lit('500 m')))     //  1
-console.log('1 kg vs 1000 g:',   cdtCompare(lit('1 kg'),  lit('1000 g')))    //  0
-console.log('3 m/s vs 90 km/h:', cdtCompare(lit('3 m/s'), lit('90 km/h')))  // -1
+console.log('1 km vs 500 m:',    ops.compare(lit('1 km'),  lit('500 m')))     //  1
+console.log('1 kg vs 1000 g:',   ops.compare(lit('1 kg'),  lit('1000 g')))    //  0
+console.log('3 m/s vs 90 km/h:', ops.compare(lit('3 m/s'), lit('90 km/h')))  // -1
 
 // --- Conversion ---
-console.log('0 Cel -> K:',       cdtConvert($rdf, lit('0 Cel'), 'K').value)  // 273.15 K
-console.log('1 km  -> m:',       cdtConvert($rdf, lit('1 km'),  'm').value)  // 1000 m
+console.log('0 Cel -> K:',       ops.convert(lit('0 Cel'), 'K').value)  // 273.15 K
+console.log('1 km  -> m:',       ops.convert(lit('1 km'),  'm').value)  // 1000 m
 
 // --- Arithmetic ---
-console.log('5 km + 200 m:',     cdtAdd($rdf,      lit('5 km'),  lit('200 m')).value)  // 5.2 km
-console.log('1 h - 30 min:',     cdtSubtract($rdf, lit('1 h'),   lit('30 min')).value) // 0.5 h
-console.log('10 N * 5 m:',       cdtMultiply($rdf, lit('10 N'),  lit('5 m')).value)    // 50 (N).(m)
-console.log('100 m / 10 s:',     cdtDivide($rdf,   lit('100 m'), lit('10 s')).value)   // 10 (m)/(s)
+console.log('5 km + 200 m:',     ops.add(lit('5 km'),  lit('200 m')).value)  // 5.2 km
+console.log('1 h - 30 min:',     ops.subtract(lit('1 h'),   lit('30 min')).value) // 0.5 h
+console.log('10 N * 5 m:',       ops.multiply(lit('10 N'),  lit('5 m')).value)    // 50 (N).(m)
+console.log('100 m / 10 s:',     ops.divide(lit('100 m'), lit('10 s')).value)     // 10 (m)/(s)
 ```
 
-Add and subtract only work on commensurable units and give back the result in the first operand's unit. Multiply and divide work on anything and produce a compound unit string. If you pass incompatible units like `km + kg`, you'll get a `UCUMDimensionError`. Division by zero throws `UCUMArithmeticError`. If an argument isn't a recognised CDT or XSD literal, the function returns `null`.
+Add and subtract only work on commensurable units and give back the result in the first operand's unit. Multiply and divide work on anything and produce a compound unit string. If you pass incompatible units like `km + kg`, you'll get a `UCUMDimensionError`. Division by zero throws `UCUMArithmeticError`. If an argument isn't a recognised CDT literal, the function returns `null`.
+
+## API
+
+### `UCUMOperations`
+
+```typescript
+const ops = new UCUMOperations(rdflib)
+```
+
+| Method | Returns | Notes |
+|---|---|---|
+| `add(a, b)` | CDT literal | result in left operand's unit |
+| `subtract(a, b)` | CDT literal | result in left operand's unit |
+| `multiply(a, b)` | CDT literal | compound unit |
+| `divide(a, b)` | CDT literal | compound unit, or dimensionless if same dimension |
+| `convert(a, unit)` | CDT literal | throws `UCUMDimensionError` if incompatible |
+| `getValue(a, unit)` | `number` | numeric value after conversion |
+| `getUnit(a)` | `string` | UCUM unit string from the literal |
+| `equals(a, b)` | `boolean` | value-based equality across units |
+| `compare(a, b)` | `-1 \| 0 \| 1` | throws `UCUMDimensionError` if incompatible |
+| `sameDimension(a, b)` | `boolean` | commensurability check |
+
+### `createCdtStore(rdflib, features?)`
+
+Returns a rdflib.js `Store` whose `statementsMatching`, `holds`, `any`, and `each` match CDT literals by physical value.
 
 ## References
 
@@ -92,3 +109,4 @@ Add and subtract only work on commensurable units and give back the result in th
 - [`@lhncbc/ucum-lhc`](https://github.com/lhncbc/ucum-lhc) - UCUM parsing and conversion engine (NIH/NLM)
 - [rdflib.js](https://github.com/linkeddata/rdflib.js) - the RDF library this package extends
 - [rdflib-ucum](https://github.com/Irfan-Ullah-cs/rdflib-ucum) - the Python sibling library
+- [jena-ucum](https://github.com/Irfan-Ullah-cs/jena-ucum) - the Java sibling library

@@ -6,11 +6,13 @@
 import { expect } from 'chai'
 import * as $rdf from 'rdflib'
 import {
-  cdtEquals,
+  UCUMOperations,
   parseCdtLiteral,
   canonicalKey,
   CDT_IRIS,
 } from '../src/index'
+
+const ops = new UCUMOperations($rdf)
 
 
 // Helper: build a cdt:ucum Literal the same way application code would
@@ -26,61 +28,61 @@ function lit(lexical: string): any {
 describe('TestUCUMQuantityEquality', () => {
 
   it('same unit same value: 1000 m == 1 km', () => {
-    expect(cdtEquals(lit('1000 m'), lit('1 km'))).to.be.true
+    expect(ops.equals(lit('1000 m'), lit('1 km'))).to.be.true
   })
 
   it('cross-unit time: 1 h == 3600 s', () => {
-    expect(cdtEquals(lit('1 h'), lit('3600 s'))).to.be.true
+    expect(ops.equals(lit('1 h'), lit('3600 s'))).to.be.true
   })
 
   it('cross-unit pressure: 1 kPa == 1000 Pa', () => {
-    expect(cdtEquals(lit('1 kPa'), lit('1000 Pa'))).to.be.true
+    expect(ops.equals(lit('1 kPa'), lit('1000 Pa'))).to.be.true
   })
 
   it('cross-unit speed: 3.6 km/h == 1 m/s', () => {
-    expect(cdtEquals(lit('3.6 km/h'), lit('1 m/s'))).to.be.true
+    expect(ops.equals(lit('3.6 km/h'), lit('1 m/s'))).to.be.true
   })
 
   it('different values not equal: 1 km != 500 m', () => {
-    expect(cdtEquals(lit('1 km'), lit('500 m'))).to.be.false
+    expect(ops.equals(lit('1 km'), lit('500 m'))).to.be.false
   })
 
   it('incompatible dimensions not equal: 1 m != 1 kg', () => {
     // Must return false, not throw
-    expect(cdtEquals(lit('1 m'), lit('1 kg'))).to.be.false
+    expect(ops.equals(lit('1 m'), lit('1 kg'))).to.be.false
   })
 
 
   it('derived unit: 1 N == 1 kg.m/s2', () => {
-    expect(cdtEquals(lit('1 N'), lit('1 kg.m/s2'))).to.be.true
+    expect(ops.equals(lit('1 N'), lit('1 kg.m/s2'))).to.be.true
   })
 
   it('derived unit: 1 J == 1 N.m', () => {
-    expect(cdtEquals(lit('1 J'), lit('1 N.m'))).to.be.true
+    expect(ops.equals(lit('1 J'), lit('1 N.m'))).to.be.true
   })
 
   it('derived unit: 1 W == 1 J/s', () => {
-    expect(cdtEquals(lit('1 W'), lit('1 J/s'))).to.be.true
+    expect(ops.equals(lit('1 W'), lit('1 J/s'))).to.be.true
   })
 
   it('derived unit: 1 Pa == 1 kg/(m.s2)', () => {
-    expect(cdtEquals(lit('1 Pa'), lit('1 kg/(m.s2)'))).to.be.true
+    expect(ops.equals(lit('1 Pa'), lit('1 kg/(m.s2)'))).to.be.true
   })
 
   it('derived unit: 1 Hz == 1 s-1', () => {
-    expect(cdtEquals(lit('1 Hz'), lit('1 s-1'))).to.be.true
+    expect(ops.equals(lit('1 Hz'), lit('1 s-1'))).to.be.true
   })
 
   it('dimensionless ratio: 50 % == 0.5 1', () => {
-    expect(cdtEquals(lit('50 %'), lit('0.5 1'))).to.be.true
+    expect(ops.equals(lit('50 %'), lit('0.5 1'))).to.be.true
   })
 
   it('speed of light: 299792458 m/s == 1 [c]', () => {
-    expect(cdtEquals(lit('299792458 m/s'), lit('1 [c]'))).to.be.true
+    expect(ops.equals(lit('299792458 m/s'), lit('1 [c]'))).to.be.true
   })
 
   it('unit factor order irrelevant: 1 kg.m/s2 == 1 s-2.m.kg', () => {
-    expect(cdtEquals(lit('1 kg.m/s2'), lit('1 s-2.m.kg'))).to.be.true
+    expect(ops.equals(lit('1 kg.m/s2'), lit('1 s-2.m.kg'))).to.be.true
   })
 
 })

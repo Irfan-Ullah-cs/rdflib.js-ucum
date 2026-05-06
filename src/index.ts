@@ -42,23 +42,6 @@ export type {
   ParsedCdtUnit,
 } from './cdt-literal'
 
-export {
-  tryParseCdt,
-  cdtEquals,
-  cdtStrictEquals,
-  cdtCompare,
-  cdtCompareSafe,
-  cdtCommensurable,
-  cdtConvert,
-  cdtValueIn,
-} from './cdt-comparison'
-
-export {
-  cdtAdd,
-  cdtSubtract,
-  cdtMultiply,
-  cdtDivide,
-} from './cdt-arithmetic'
-
 export { createCdtFactory } from './cdt-factory'
 export { createCdtStore } from './cdt-store'
+export { UCUMOperations } from './ucum-operations'

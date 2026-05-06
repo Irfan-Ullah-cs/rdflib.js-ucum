@@ -8,13 +8,7 @@
 import { expect } from 'chai'
 import * as $rdf from 'rdflib'
 import {
-  cdtAdd,
-  cdtSubtract,
-  cdtMultiply,
-  cdtDivide,
-  cdtConvert,
-  cdtEquals,
-  cdtCompare,
+  UCUMOperations,
   parseCdtLiteral,
   parseCdtUnit,
   areCommensurable,
@@ -22,6 +16,8 @@ import {
   UCUMDimensionError,
   UCUMArithmeticError,
 } from '../src/index'
+
+const ops = new UCUMOperations($rdf)
 
 // ---
 // Helpers
@@ -78,44 +74,44 @@ function expectNear(actual: number, expected: number, relTol = 1e-9): void {
 describe('TestAddition', () => {
 
   it('same unit: 5 km + 3 km = 8 km', () => {
-    const r = parseResult(cdtAdd($rdf, lit('5 km'), lit('3 km')))
+    const r = parseResult(ops.add( lit('5 km'), lit('3 km')))
     expect(r.numericValue).to.equal(8)
     expect(r.unitString).to.equal('km')
   })
 
   it('cross-unit converts to left: 5 km + 200 m = 5.2 km', () => {
-    const r = parseResult(cdtAdd($rdf, lit('5 km'), lit('200 m')))
+    const r = parseResult(ops.add( lit('5 km'), lit('200 m')))
     expectNear(r.numericValue, 5.2)
     expect(r.unitString).to.equal('km')
   })
 
   it('mass: 1 kg + 500 g = 1.5 kg', () => {
-    const r = parseResult(cdtAdd($rdf, lit('1 kg'), lit('500 g')))
+    const r = parseResult(ops.add( lit('1 kg'), lit('500 g')))
     expectNear(r.numericValue, 1.5)
     expect(r.unitString).to.equal('kg')
   })
 
   it('time: 1 h + 30 min = 1.5 h', () => {
-    const r = parseResult(cdtAdd($rdf, lit('1 h'), lit('30 min')))
+    const r = parseResult(ops.add( lit('1 h'), lit('30 min')))
     expectNear(r.numericValue, 1.5)
     expect(r.unitString).to.equal('h')
   })
 
   it('energy: 1 kJ + 500 J = 1.5 kJ', () => {
-    const r = parseResult(cdtAdd($rdf, lit('1 kJ'), lit('500 J')))
+    const r = parseResult(ops.add( lit('1 kJ'), lit('500 J')))
     expectNear(r.numericValue, 1.5)
     expect(r.unitString).to.equal('kJ')
   })
 
   it('complex compound: 10 N + 5 kg.m/s2 = 15 N', () => {
     // N and kg.m/s2 are the same physical dimension
-    const r = parseResult(cdtAdd($rdf, lit('10 N'), lit('5 kg.m/s2')))
+    const r = parseResult(ops.add( lit('10 N'), lit('5 kg.m/s2')))
     expectNear(r.numericValue, 15.0)
     expect(r.unitString).to.equal('N')
   })
 
   it('incompatible dimensions throws UCUMDimensionError: 1 m + 1 kg', () => {
-    expect(() => cdtAdd($rdf, lit('1 m'), lit('1 kg'))).to.throw(UCUMDimensionError)
+    expect(() => ops.add( lit('1 m'), lit('1 kg'))).to.throw(UCUMDimensionError)
   })
 
 })
@@ -128,30 +124,30 @@ describe('TestAddition', () => {
 describe('TestSubtraction', () => {
 
   it('same unit: 5 km - 3 km = 2 km', () => {
-    const r = parseResult(cdtSubtract($rdf, lit('5 km'), lit('3 km')))
+    const r = parseResult(ops.subtract( lit('5 km'), lit('3 km')))
     expect(r.numericValue).to.equal(2)
     expect(r.unitString).to.equal('km')
   })
 
   it('cross-unit: 5 km - 200 m = 4.8 km', () => {
-    const r = parseResult(cdtSubtract($rdf, lit('5 km'), lit('200 m')))
+    const r = parseResult(ops.subtract( lit('5 km'), lit('200 m')))
     expectNear(r.numericValue, 4.8)
     expect(r.unitString).to.equal('km')
   })
 
   it('subtract to zero: 1 km - 1000 m = 0', () => {
-    const r = parseResult(cdtSubtract($rdf, lit('1 km'), lit('1000 m')))
+    const r = parseResult(ops.subtract( lit('1 km'), lit('1000 m')))
     expectNear(r.numericValue, 0)
   })
 
   it('negative result: 200 m - 1 km = -800 m', () => {
-    const r = parseResult(cdtSubtract($rdf, lit('200 m'), lit('1 km')))
+    const r = parseResult(ops.subtract( lit('200 m'), lit('1 km')))
     expectNear(r.numericValue, -800)
     expect(r.unitString).to.equal('m')
   })
 
   it('incompatible dimensions throws UCUMDimensionError: 1 m - 1 s', () => {
-    expect(() => cdtSubtract($rdf, lit('1 m'), lit('1 s'))).to.throw(UCUMDimensionError)
+    expect(() => ops.subtract( lit('1 m'), lit('1 s'))).to.throw(UCUMDimensionError)
   })
 
 })
@@ -164,29 +160,29 @@ describe('TestSubtraction', () => {
 describe('TestScalarOperations', () => {
 
   it('quantity * integer: 5 km * 3 = 15 km', () => {
-    const r = parseResult(cdtMultiply($rdf, lit('5 km'), intLit(3)))
+    const r = parseResult(ops.multiply( lit('5 km'), intLit(3)))
     expect(r.numericValue).to.equal(15)
     expect(r.unitString).to.equal('km')
   })
 
   it('quantity * float: 2 km * 0.5 = 1.0 km', () => {
-    const r = parseResult(cdtMultiply($rdf, lit('2 km'), dblLit(0.5)))
+    const r = parseResult(ops.multiply( lit('2 km'), dblLit(0.5)))
     expectNear(r.numericValue, 1.0)
   })
 
   it('scalar * quantity (reversed): 3 * 5 km = 15 km', () => {
-    const r = parseResult(cdtMultiply($rdf, intLit(3), lit('5 km')))
+    const r = parseResult(ops.multiply( intLit(3), lit('5 km')))
     expect(r.numericValue).to.equal(15)
   })
 
   it('quantity / integer: 10 km / 2 = 5 km', () => {
-    const r = parseResult(cdtDivide($rdf, lit('10 km'), intLit(2)))
+    const r = parseResult(ops.divide( lit('10 km'), intLit(2)))
     expect(r.numericValue).to.equal(5)
     expect(r.unitString).to.equal('km')
   })
 
   it('quantity / float: 1 km / 0.5 = 2.0 km', () => {
-    const r = parseResult(cdtDivide($rdf, lit('1 km'), dblLit(0.5)))
+    const r = parseResult(ops.divide( lit('1 km'), dblLit(0.5)))
     expectNear(r.numericValue, 2.0)
   })
 
@@ -200,7 +196,7 @@ describe('TestScalarOperations', () => {
 describe('TestDimensionChangingArithmetic', () => {
 
   it('area from m * m: 3 m * 4 m = 12, commensurable with m2', () => {
-    const result = cdtMultiply($rdf, lit('3 m'), lit('4 m'))
+    const result = ops.multiply( lit('3 m'), lit('4 m'))
     expect(result).to.not.be.null
     const r = parseResult(result)
     expectNear(r.numericValue, 12)
@@ -208,7 +204,7 @@ describe('TestDimensionChangingArithmetic', () => {
   })
 
   it('velocity from m / s: 100 m / 10 s = 10, commensurable with m/s', () => {
-    const result = cdtDivide($rdf, lit('100 m'), lit('10 s'))
+    const result = ops.divide( lit('100 m'), lit('10 s'))
     expect(result).to.not.be.null
     const r = parseResult(result)
     expectNear(r.numericValue, 10)
@@ -216,42 +212,42 @@ describe('TestDimensionChangingArithmetic', () => {
   })
 
   it('force from kg * m/s2: 2 kg * 3 m/s2 = 6, equals 6 N', () => {
-    const result = cdtMultiply($rdf, lit('2 kg'), lit('3 m/s2'))
+    const result = ops.multiply( lit('2 kg'), lit('3 m/s2'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 6)
-    expect(cdtEquals(result, lit('6 N'))).to.be.true
+    expect(ops.equals(result, lit('6 N'))).to.be.true
   })
 
   it('energy from N * m: 10 N * 5 m = 50, equals 50 J', () => {
-    const result = cdtMultiply($rdf, lit('10 N'), lit('5 m'))
+    const result = ops.multiply( lit('10 N'), lit('5 m'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 50)
-    expect(cdtEquals(result, lit('50 J'))).to.be.true
+    expect(ops.equals(result, lit('50 J'))).to.be.true
   })
 
   it('power from J / s: 100 J / 10 s = 10, equals 10 W', () => {
-    const result = cdtDivide($rdf, lit('100 J'), lit('10 s'))
+    const result = ops.divide( lit('100 J'), lit('10 s'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 10)
-    expect(cdtEquals(result, lit('10 W'))).to.be.true
+    expect(ops.equals(result, lit('10 W'))).to.be.true
   })
 
   it('pressure from N / m2: 10 N / 2 m2 = 5, equals 5 Pa', () => {
-    const result = cdtDivide($rdf, lit('10 N'), lit('2 m2'))
+    const result = ops.divide( lit('10 N'), lit('2 m2'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 5)
-    expect(cdtEquals(result, lit('5 Pa'))).to.be.true
+    expect(ops.equals(result, lit('5 Pa'))).to.be.true
   })
 
   it('frequency from 1/s: 1 1 / 0.01 s = 100, equals 100 Hz', () => {
-    const result = cdtDivide($rdf, lit('1 1'), lit('0.01 s'))
+    const result = ops.divide( lit('1 1'), lit('0.01 s'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 100)
-    expect(cdtEquals(result, lit('100 Hz'))).to.be.true
+    expect(ops.equals(result, lit('100 Hz'))).to.be.true
   })
 
   it('dimensionless from same-unit division: 5 m / 5 m = 1 (xsd:decimal)', () => {
-    const result = cdtDivide($rdf, lit('5 m'), lit('5 m'))
+    const result = ops.divide( lit('5 m'), lit('5 m'))
     expect(result).to.not.be.null
     // Same unit -> cdtDivide returns xsd:decimal, not cdt:ucum
     expect(result.datatype.value).to.equal(XSD_DECIMAL)
@@ -259,24 +255,24 @@ describe('TestDimensionChangingArithmetic', () => {
   })
 
   it('dimensionless from mass division: 2 kg / 1 kg = 2 (xsd:decimal)', () => {
-    const result = cdtDivide($rdf, lit('2 kg'), lit('1 kg'))
+    const result = ops.divide( lit('2 kg'), lit('1 kg'))
     expect(result).to.not.be.null
     expect(result.datatype.value).to.equal(XSD_DECIMAL)
     expectNear(parseFloat(result.value), 2.0)
   })
 
   it('electric power: 10 V * 2 A = 20, equals 20 W', () => {
-    const result = cdtMultiply($rdf, lit('10 V'), lit('2 A'))
+    const result = ops.multiply( lit('10 V'), lit('2 A'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 20)
-    expect(cdtEquals(result, lit('20 W'))).to.be.true
+    expect(ops.equals(result, lit('20 W'))).to.be.true
   })
 
   it("Ohm's law: 10 V / 2 A = 5, equals 5 Ohm", () => {
-    const result = cdtDivide($rdf, lit('10 V'), lit('2 A'))
+    const result = ops.divide( lit('10 V'), lit('2 A'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 5)
-    expect(cdtEquals(result, lit('5 Ohm'))).to.be.true
+    expect(ops.equals(result, lit('5 Ohm'))).to.be.true
   })
 
 })
@@ -294,56 +290,56 @@ describe('TestDimensionChangingArithmetic', () => {
 describe('TestUnitConversion', () => {
 
   it('m to km: 1000 m = 1 km', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1000 m'), 'km'))
+    const r = parseResult(ops.convert( lit('1000 m'), 'km'))
     expectNear(r.numericValue, 1)
   })
 
   it('g to kg: 500 g = 0.5 kg', () => {
-    const r = parseResult(cdtConvert($rdf, lit('500 g'), 'kg'))
+    const r = parseResult(ops.convert( lit('500 g'), 'kg'))
     expectNear(r.numericValue, 0.5)
   })
 
   it('h to s: 1 h = 3600 s', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1 h'), 's'))
+    const r = parseResult(ops.convert( lit('1 h'), 's'))
     expectNear(r.numericValue, 3600)
   })
 
   it('min to s: 1 min = 60 s', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1 min'), 's'))
+    const r = parseResult(ops.convert( lit('1 min'), 's'))
     expectNear(r.numericValue, 60)
   })
 
   it('MHz to Hz: 1 MHz = 1e6 Hz', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1 MHz'), 'Hz'))
+    const r = parseResult(ops.convert( lit('1 MHz'), 'Hz'))
     expectNear(r.numericValue, 1e6)
   })
 
   it('mV to V: 1000 mV = 1 V', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1000 mV'), 'V'))
+    const r = parseResult(ops.convert( lit('1000 mV'), 'V'))
     expectNear(r.numericValue, 1)
   })
 
   it('km/h to m/s: 3.6 km/h = 1.0 m/s', () => {
-    const r = parseResult(cdtConvert($rdf, lit('3.6 km/h'), 'm/s'))
+    const r = parseResult(ops.convert( lit('3.6 km/h'), 'm/s'))
     expectNear(r.numericValue, 1.0)
   })
 
   it('eV to J: 1 eV ≈ 1.602176634e-19 J', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1 eV'), 'J'))
+    const r = parseResult(ops.convert( lit('1 eV'), 'J'))
     expectNear(r.numericValue, 1.602176634e-19, 1e-6)
   })
 
   it('N to kg.m/s2: 1 N = 1 kg.m/s2', () => {
-    const r = parseResult(cdtConvert($rdf, lit('1 N'), 'kg.m/s2'))
+    const r = parseResult(ops.convert( lit('1 N'), 'kg.m/s2'))
     expectNear(r.numericValue, 1.0)
   })
 
   it('incompatible conversion throws UCUMDimensionError: 1 m to kg', () => {
-    expect(() => cdtConvert($rdf, lit('1 m'), 'kg')).to.throw(UCUMDimensionError)
+    expect(() => ops.convert( lit('1 m'), 'kg')).to.throw(UCUMDimensionError)
   })
 
   it('incompatible conversion throws UCUMDimensionError: 1 s to m', () => {
-    expect(() => cdtConvert($rdf, lit('1 s'), 'm')).to.throw(UCUMDimensionError)
+    expect(() => ops.convert( lit('1 s'), 'm')).to.throw(UCUMDimensionError)
   })
 
 })
@@ -356,7 +352,7 @@ describe('TestUnitConversion', () => {
 describe('TestNegativeExponentUnits', () => {
 
   it('s-1 equals Hz: "1 s-1" == "1 Hz"', () => {
-    expect(cdtEquals(lit('1 s-1'), lit('1 Hz'))).to.be.true
+    expect(ops.equals(lit('1 s-1'), lit('1 Hz'))).to.be.true
   })
 
   it('m-2 is commensurable with itself', () => {
@@ -364,11 +360,11 @@ describe('TestNegativeExponentUnits', () => {
   })
 
   it('100 s-1 > 10 Hz', () => {
-    expect(cdtCompare(lit('100 s-1'), lit('10 Hz'))).to.equal(1)
+    expect(ops.compare(lit('100 s-1'), lit('10 Hz'))).to.equal(1)
   })
 
   it('m/s equals m.s-1: "1 m/s" == "1 m.s-1"', () => {
-    expect(cdtEquals(lit('1 m/s'), lit('1 m.s-1'))).to.be.true
+    expect(ops.equals(lit('1 m/s'), lit('1 m.s-1'))).to.be.true
   })
 
 })
@@ -381,7 +377,7 @@ describe('TestNegativeExponentUnits', () => {
 describe('TestTemperatureArithmetic', () => {
 
   it('Kelvin addition: 100 K + 200 K = 300 K', () => {
-    const r = parseResult(cdtAdd($rdf, lit('100 K'), lit('200 K')))
+    const r = parseResult(ops.add( lit('100 K'), lit('200 K')))
     expectNear(r.numericValue, 300)
     expect(r.unitString).to.equal('K')
   })
@@ -409,18 +405,18 @@ describe('TestDimensionlessArithmetic', () => {
   })
 
   it('percent equality: "50 %" == "0.5 1"', () => {
-    expect(cdtEquals(lit('50 %'), lit('0.5 1'))).to.be.true
+    expect(ops.equals(lit('50 %'), lit('0.5 1'))).to.be.true
   })
 
   it('dimensionless from division: 5 m / 5 m -> xsd:decimal 1', () => {
-    const result = cdtDivide($rdf, lit('5 m'), lit('5 m'))
+    const result = ops.divide( lit('5 m'), lit('5 m'))
     expect(result).to.not.be.null
     expect(result.datatype.value).to.equal(XSD_DECIMAL)
     expectNear(parseFloat(result.value), 1.0)
   })
 
   it('dimensionless multiplication: 0.5 1 * 10 m = 5, commensurable with m', () => {
-    const result = cdtMultiply($rdf, lit('0.5 1'), lit('10 m'))
+    const result = ops.multiply( lit('0.5 1'), lit('10 m'))
     expect(result).to.not.be.null
     expectNear(parseResult(result).numericValue, 5.0)
     expect(areCommensurable(parseResult(result).unitString, 'm')).to.be.true
